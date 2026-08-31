@@ -1,188 +1,239 @@
-# Simple Popup Manager
+# Simple Booking
 
-A lightweight, production-ready WordPress plugin for creating and scheduling simple website popups, targeted to specific WordPress Pages.
-
-## What the Plugin Does
-
-Simple Popup Manager lets administrators create multiple popup entries using the native WordPress editor, target each popup to either **all WordPress Pages** or **one specific WordPress Page**, and optionally schedule when each popup is visible on the front end. When more than one popup is eligible for the same page, the plugin automatically selects the most recently published one and displays it as an accessible modal dialog.
-
-The plugin intentionally does **not** include analytics, cookies, "show once" dismissal, frequency capping, exit-intent, device/role targeting, or any AJAX-based popup selection. It is designed to be a small, reusable building block rather than a full marketing platform.
+Simple Booking is a reusable WordPress plugin for managing appointment requests, services, providers, dynamic scheduling, notifications, and business workflows.
 
 ## Requirements
 
-- WordPress 6.0+
-- PHP 8.0+
-- No third-party libraries, page builders, or jQuery required
+- WordPress 6.0 or newer
+- PHP 8.0 or newer
 
 ## Installation
 
-1. Upload the `simple-popup-manager` folder to `/wp-content/plugins/`, or upload the plugin ZIP via **Plugins → Add New → Upload Plugin**.
-2. Activate the plugin through the **Plugins** menu in WordPress.
-3. A new **Popups** menu item will appear in the WordPress admin sidebar.
+1. Upload the `simple-booking` folder to `wp-content/plugins/`.
+2. Activate **Simple Booking** from **Plugins** in WordPress admin.
+3. Open **Simple Booking** in the admin menu.
+4. Configure **Simple Booking → Settings**.
+5. Create providers and services before accepting appointments.
 
-## How to Create a Popup
+## Current features
 
-1. Go to **Popups → Add New**.
-2. Enter a **Title**. This title is for admin identification only — it is not automatically displayed inside the popup itself.
-3. Enter your popup message using the standard WordPress editor. Standard formatting and supported embeds are rendered normally on the front end.
-4. In the **Popup Settings** box (right-hand sidebar):
-   - Choose a **Display Location** (see below).
-   - Optionally set a **Start Date/Time** and/or **End Date/Time** (see below).
-5. **Publish** the popup. Popups remain in **Draft** until you explicitly publish them — scheduling never changes this status automatically.
+- Modular, namespaced plugin bootstrap
+- Safe activation and deactivation routines
+- Private `simple_appointment` post type
+- Admin-managed `simple_service` post type
+- Admin-managed `simple_provider` post type
+- Appointment customer and scheduling fields
+- Service duration, buffer, price display, provider assignment, and active state
+- Provider description, profile image, and active state
+- Useful appointment, service, and provider admin columns
+- Appointment filters for status, provider, service, and appointment date
+- Pending, Confirmed, Completed, and Cancelled business statuses
+- Availability-validated admin rescheduling with automatic end-time recalculation
+- Cancellation releases availability immediately
+- Administrator-only appointment capabilities by default
+- Nonce, capability, validation, sanitization, and output escaping safeguards
+- Non-destructive deactivation and uninstall behavior
+- `[simple_booking]` frontend shortcode
+- Active service and assigned-provider selection
+- Preferred appointment date and time fields using the WordPress site timezone
+- Configurable weekday business hours
+- Business-wide closed dates
+- Provider-specific weekday schedules with optional daily breaks and business-hours fallback
+- Configurable slot interval, minimum notice, and maximum advance-booking period
+- Dynamic available-time loading through a nonce-protected WordPress AJAX endpoint
+- Service duration and buffer-aware slot generation
+- Existing Pending, Confirmed, and Completed appointments block overlapping slots
+- Cancelled appointments do not block availability
+- Atomic provider/date locking and final server-side revalidation to prevent simultaneous double bookings
+- Configurable business contact details and notification preferences
+- Plain-text customer booking emails and business notification emails through `wp_mail()`
+- Configurable email subjects, customer message, and cancellation message with template tokens
+- Customer cancellation email when staff change an appointment to Cancelled
+- Accessible three-step booking flow with appointment, customer information, and review screens
+- Keyboard navigation, visible focus, field-linked errors, live availability feedback, and unique form IDs
+- Vanilla JavaScript provider filtering with a no-JavaScript fallback
+- Server-side validation for required fields, relationships, activity, dates, and times
+- Private appointment creation with a Pending business status
+- Post/redirect/get submission flow that prevents browser-refresh duplicates
+- Frontend assets loaded only where the shortcode is present whenever practical
 
-## Display Targeting
-
-Two targeting modes are available:
-
-- **All Pages** — the popup is eligible on every singular WordPress Page (`is_page()`). This does **not** include blog posts, archives, search results, the blog index, or other post types.
-- **Specific Page** — the popup is eligible only on the one WordPress Page you select from the dropdown (published pages only). The page is stored by its post ID.
-
-If a page selected for "Specific Page" targeting is later deleted, trashed, or unpublished, the popup fails safe: it stops matching entirely rather than becoming a site-wide popup.
-
-## Start/End Scheduling
-
-Each popup can optionally have a **Start Date/Time** and an **End Date/Time**. These fields control **front-end visibility only** — they never change the underlying WordPress Publish/Draft post status. A popup you leave in Draft will never appear on the front end regardless of its dates, and a Published popup whose schedule has expired stays Published (visible in the admin list) but is simply excluded from front-end selection.
-
-Eligibility follows this rule, evaluated in the WordPress site's configured timezone (**Settings → General → Timezone**), not the visitor's browser timezone or the PHP server's timezone:
-
-```
-start <= current time < end
-```
-
-The end date is an **exclusive** boundary, so a popup stops displaying exactly at its end time rather than one second after.
-
-| Start | End | Behavior |
-|---|---|---|
-| (none) | (none) | Active immediately after publishing, indefinitely. |
-| Future | (none) | Becomes active once the start time is reached. |
-| (none) | Future | Active immediately, stops at the end time. |
-| Set | Set | Active only within that window. |
-| Past | Past | Published but expired — excluded from selection. |
-
-If both a start and end date are supplied and the end date is not later than the start date, the end date is rejected during save and an admin notice explains why. Empty or malformed stored dates are always treated safely as "no boundary" and never cause a front-end PHP error.
-
-## Popup Priority (Multiple Matching Popups)
-
-Only one popup displays per page view. When more than one popup could match the current page, the plugin:
-
-1. Excludes any popup that isn't Published.
-2. Excludes any popup whose targeting doesn't match the current page.
-3. Excludes any popup whose start date hasn't arrived yet.
-4. Excludes any popup that has reached or passed its end date.
-5. Sorts the remaining popups by their WordPress **publish date**, newest first.
-6. Selects only the single newest match.
-
-Priority is based on the post's publish date — not its start date.
-
-## Closing Behavior
-
-The popup can be closed by:
-
-- Activating the close button.
-- Pressing the **Escape** key.
-- Clicking on the overlay/backdrop outside the popup dialog.
-
-Clicking inside the popup content does not close it. Closing a popup only affects the current page view — there is no cookie, `localStorage`, `sessionStorage`, or other persistence, and no "show once" behavior in this version.
-
-## Accessibility
-
-The popup is implemented as an accessible modal dialog:
-
-- `role="dialog"` and `aria-modal="true"` on the dialog element, with `aria-labelledby` pointing at a visually-hidden heading built from the popup's admin title (for an accessible name without displaying the title in the visible content).
-- Keyboard focus moves into the dialog when it opens and is returned to the previously focused element when it closes.
-- Tab/Shift+Tab cycle (contain) focus within the dialog while it is open.
-- Escape closes the dialog.
-- Visible focus indicators are preserved (not suppressed) via `:focus-visible` styling.
-- Popup content uses relative units and remains usable at high browser zoom levels.
-- The fade-in transition is skipped entirely for visitors with `prefers-reduced-motion: reduce`.
-
-## Plugin Architecture
+## Folder structure
 
 ```text
-simple-popup-manager/
-├── simple-popup-manager.php        Plugin bootstrap: constants, hooks, activation/deactivation
-├── includes/
-│   ├── class-popup-post-type.php   Registers the `spm_popup` custom post type
-│   ├── class-popup-admin.php       Meta box, save/validation, admin list columns
-│   ├── class-popup-query.php       Centralized eligibility + selection logic
-│   └── class-popup-frontend.php    Conditional asset loading + front-end markup
+simple-booking/
+├── admin/
+│   └── class-admin.php
 ├── assets/
-│   ├── css/popup.css               Popup styles (overlay, dialog, focus states, reduced motion)
-│   └── js/popup.js                 Vanilla JS: open/close, focus trap, Escape, overlay click
-└── README.md
+│   ├── css/simple-booking.css
+│   ├── images/
+│   ├── js/simple-booking.js
+│   └── scss/simple-booking.scss
+├── includes/
+│   ├── class-activator.php
+│   ├── class-appointment-statuses.php
+│   ├── class-availability.php
+│   ├── class-assets.php
+│   ├── class-booking.php
+│   ├── class-deactivator.php
+│   ├── class-email.php
+│   ├── class-labels.php
+│   ├── class-plugin.php
+│   ├── class-post-types.php
+│   └── class-settings.php
+├── public/
+│   ├── views/booking-form.php
+│   └── class-public.php
+├── languages/
+├── simple-booking.php
+├── package.json
+├── README.md
+└── uninstall.php
 ```
 
-Responsibilities are kept separate on purpose: post type registration, admin/meta handling, eligibility/selection, and front-end rendering each live in their own class, and no other class duplicates the eligibility rules defined in `SPM_Popup_Query`.
+## Admin usage
 
-## Development Notes
+### Providers
 
-- Popup meta is stored with a consistent `_spm_` prefix: `_spm_target`, `_spm_target_page_id`, `_spm_start_date`, `_spm_end_date`.
-- Dates are stored as `Y-m-d H:i:s` strings, always interpreted in the site's configured timezone via `wp_timezone()` / `current_datetime()`.
-- Popup selection runs once per request (`SPM_Popup_Query::get_active_popup()` caches its result in a static property) so both the asset-loading check and the footer render reuse the same query instead of running it twice.
-- No WP-Cron jobs are registered; scheduling is evaluated live against the current site time on each request.
-- No AJAX requests are used to determine which popup displays — selection happens entirely in PHP during normal page rendering.
-- Popup content is passed through the standard `the_content` filter so editor formatting/embeds behave normally; all dynamically generated attributes, IDs, and URLs are escaped with the appropriate `esc_*` functions.
-- All admin-submitted values (targeting mode, page ID, dates) are sanitized, validated against an allowlist/format, and capability/nonce-checked before saving.
+Add each provider under **Simple Booking → Providers**. The title is the provider name, the editor stores a short description, and the featured image is the optional profile image. Providers inherit business hours by default. Enable a custom provider schedule to configure working hours and one optional break for each weekday.
 
-## Testing Instructions
+### Services
 
-### Automated / Static Checks Performed
+Add services under **Simple Booking → Services**. Configure duration, buffer time, optional price display text, active state, and assigned providers.
 
-- All PHP files were linted with `php -l` and contain no syntax errors.
-- The bundled JavaScript was checked with `node --check` and contains no syntax errors.
-- Code was reviewed against every rule in the functional specification (targeting, scheduling, priority, accessibility, security, performance, asset loading).
+### Appointments
 
-These checks confirm the code parses correctly and follows the intended logic on inspection. **They are not a substitute for running the plugin inside an actual WordPress installation**, since PHP linting cannot execute WordPress hooks, database queries, or browser-side behavior.
+Appointments are private and have no public single page, archive, REST endpoint, or search visibility. Staff can review customer details, change status, add internal notes, cancel, and reschedule an appointment. The appointment list can be filtered by status, provider, service, or appointment date.
 
-### Manual Testing Checklist (requires a real WordPress install)
+The post publication state remains a WordPress administrative state. The appointment's business state is stored separately as Pending, Confirmed, Completed, or Cancelled. Cancelled appointments do not block availability.
 
-**Publishing & Drafts**
-- [ ] Create a popup, leave it as a Draft — confirm it never appears on the front end.
-- [ ] Publish the popup — confirm it can now appear (subject to targeting/scheduling).
+When rescheduling, choose a service, assigned provider, date, and start time, then update the appointment. The plugin validates the same scheduling rules used by the public form, excludes the appointment being edited from its conflict check, locks the new provider/date during the update, and recalculates the end time and buffer snapshot. If validation fails, the saved appointment schedule is preserved and an admin error explains why.
 
-**Targeting**
-- [ ] Set a popup to "All Pages" — confirm it appears on multiple different Pages.
-- [ ] Confirm an "All Pages" popup does **not** appear on posts, the blog index, archives, or search results.
-- [ ] Set a popup to "Specific Page" — confirm it appears only on that page and nowhere else.
-- [ ] Delete or unpublish the page targeted by a "Specific Page" popup — confirm the popup no longer displays anywhere (fails safe, does not become site-wide).
+### Scheduling settings
 
-**Scheduling**
-- [ ] No start/end dates — popup is active immediately after publishing.
-- [ ] Future start date — popup is not visible until that time is reached.
-- [ ] Past end date — popup is Published in the admin but does not display on the front end.
-- [ ] Start date in the past, end date in the future — popup is active.
-- [ ] Enter an end date equal to or earlier than the start date — confirm the admin notice appears and the end date is rejected.
-- [ ] Confirm dates are evaluated using the site's **Settings → General** timezone, not the browser's local timezone.
+Open **Simple Booking → Settings** to configure the slot interval, minimum notice, maximum advance-booking period, opening/closing time for each weekday, and business-wide closed dates. Enter closed dates one per line in `YYYY-MM-DD` format. Scheduling uses the timezone configured under **WordPress Settings → General**.
 
-**Multiple-Popup Priority**
-- [ ] Publish two popups that both target the same page and are both currently eligible — confirm only the more recently *published* one displays.
+Business closed dates override all schedules. A provider's custom schedule overrides business weekday hours; providers set to inherit continue using the business schedule.
 
-**Front-End Rendering & Behavior**
-- [ ] Confirm popup CSS/JS only load on pages where a popup will actually render (inspect page source / network tab on a page with no eligible popup).
-- [ ] Confirm the overlay, dialog, and close button render correctly.
-- [ ] Close via the close button.
-- [ ] Close via the Escape key.
-- [ ] Close via clicking the overlay outside the dialog.
-- [ ] Confirm clicking inside the dialog content does not close the popup.
+### Email settings
 
-**Accessibility**
-- [ ] Confirm focus moves into the popup when it opens.
-- [ ] Tab through the popup and confirm focus stays contained within it.
-- [ ] Confirm focus returns to the triggering element after closing.
-- [ ] Confirm visible focus outlines are present while tabbing.
-- [ ] Test at 200%+ browser zoom to confirm the popup remains usable.
-- [ ] Enable "reduce motion" at the OS level and confirm the popup's entrance transition is skipped.
+Under **Simple Booking → Settings**, configure the business name, contact email, phone, business notification recipient, email toggles, subjects, customer message, and cancellation message.
 
-**Responsive**
-- [ ] Confirm the popup is usable and readable on small (mobile-width) viewports.
+Message fields support these tokens:
 
-## What Could Not Be Automatically Tested
+```text
+{customer_name}
+{service}
+{provider}
+{date}
+{time}
+{business_name}
+```
 
-This environment does not include a running WordPress instance, MySQL database, or browser, so the following require manual verification inside a real WordPress site:
+Customer emails include the customer name, service, provider, appointment date/time, status, and business contact details. Business emails include customer contact details and a direct WordPress admin management link. Email delivery depends on the site's WordPress mail configuration.
 
-- Actual rendering and execution of PHP against WordPress core hooks (`init`, `save_post`, `wp_footer`, `wp_enqueue_scripts`, etc.).
-- Database reads/writes for post meta (`update_post_meta`, `get_post_meta`, `WP_Query`).
-- Live timezone behavior against a specific site's **Settings → General** configuration.
-- Browser-based JavaScript behavior: focus trapping, Escape handling, overlay-click detection, and `prefers-reduced-motion` response.
-- Visual/responsive appearance across real themes, screen sizes, and browser zoom levels.
-- Screen reader behavior (e.g., with NVDA, JAWS, or VoiceOver).
+## Booking shortcode
+
+Add the booking form to a page with:
+
+```text
+[simple_booking]
+```
+
+The form shows published services and providers that are active. A provider must be assigned to the selected service in the service settings. Customers choose an appointment, enter their details, and review the request before submission. Submitted appointments are stored privately with a Pending status and do not require a customer WordPress account.
+
+Availability is calculated from closed dates, business or provider hours, provider breaks, slot interval, minimum notice, maximum booking range, service duration and buffer, and the provider's existing appointments. The same rules are checked again under a provider/date lock immediately before creation. JavaScript is required to load live time choices and the review-step enhancement; all authoritative validation remains on the server.
+
+## Styling customization
+
+All frontend selectors are scoped beneath `.simple-booking`. Themes can override the included custom properties, for example:
+
+```css
+.simple-booking {
+	--simple-booking-primary: #155e75;
+	--simple-booking-primary-hover: #164e63;
+	--simple-booking-focus: #1d4ed8;
+}
+```
+
+## Terminology customization
+
+Generic labels can be replaced for a site's presentation without changing internal identifiers or booking logic. For example:
+
+```php
+add_filter(
+	'simple_booking_labels',
+	static function ( array $labels ): array {
+		$labels['provider']  = 'Technician';
+		$labels['providers'] = 'Technicians';
+		$labels['customer']  = 'Customer';
+
+		return $labels;
+	}
+);
+```
+
+The filter supports `appointment`, `appointments`, `service`, `services`, `provider`, `providers`, `customer`, `business`, `book_appointment`, `customer_details`, and `request_appointment`. Translation files can customize all other interface text.
+
+## Development setup
+
+Install the optional Sass development dependency and rebuild CSS with:
+
+```bash
+npm install
+npm run build:css
+```
+
+PHP files can be checked with:
+
+```bash
+find simple-booking -name '*.php' -print0 | xargs -0 -n1 php -l
+```
+
+## Hooks
+
+The plugin provides these extension points:
+
+```php
+do_action( 'simple_booking_before_create_appointment', $booking_data );
+do_action( 'simple_booking_after_create_appointment', $appointment_id, $booking_data );
+apply_filters( 'simple_booking_consent_required', true );
+apply_filters( 'simple_booking_labels', $labels );
+apply_filters( 'simple_booking_available_slots', $slots, $provider_id, $service_id, $date );
+do_action( 'simple_booking_appointment_status_changed', $appointment_id, $new_status, $old_status );
+apply_filters( 'simple_booking_confirmation_email_subject', $subject, $appointment_id );
+apply_filters( 'simple_booking_confirmation_email_body', $body, $appointment_id );
+apply_filters( 'simple_booking_customer_email_recipient', $recipient, $appointment_id, $context );
+apply_filters( 'simple_booking_business_email_subject', $subject, $appointment_id );
+apply_filters( 'simple_booking_business_email_body', $body, $appointment_id );
+apply_filters( 'simple_booking_business_email_recipient', $recipient, $appointment_id );
+apply_filters( 'simple_booking_cancellation_email_subject', $subject, $appointment_id );
+apply_filters( 'simple_booking_cancellation_email_body', $body, $appointment_id );
+```
+
+The two actions receive sanitized booking data. Important values are validated again by the plugin before the appointment is created.
+
+## Data removal
+
+Deactivating the plugin never deletes appointments, services, providers, or settings.
+
+Uninstalling also retains data by default. To explicitly remove all Simple Booking data during uninstall, define this before uninstalling:
+
+```php
+define( 'SIMPLE_BOOKING_REMOVE_DATA', true );
+```
+
+This deletion is permanent and includes all appointment records.
+
+## Known limitations
+
+The first production version intentionally does not include:
+
+- Email delivery logging or retry queues
+- Payments, insurance processing, medical records, SMS, or calendar synchronization
+
+## Roadmap
+
+- **Phase 2:** shortcode, service/provider selection, customer form, and appointment creation — complete
+- **Phase 3:** business hours, dynamic availability, durations, and server-side conflict prevention — complete
+- **Phase 4:** emails, advanced statuses, filters, cancellation, and rescheduling — complete
+- **Phase 5:** improved UX, closed dates, provider schedules, accessibility, performance, and security review — complete
