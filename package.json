@@ -1,0 +1,13 @@
+{
+  "name": "simple-booking",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Frontend styles for the Simple Booking WordPress plugin.",
+  "scripts": {
+    "build:css": "sass --style=expanded assets/scss/simple-booking.scss assets/css/simple-booking.css --no-source-map",
+    "watch:css": "sass --watch --style=expanded assets/scss/simple-booking.scss:assets/css/simple-booking.css"
+  },
+  "devDependencies": {
+    "sass": "^1.90.0"
+  }
+}
