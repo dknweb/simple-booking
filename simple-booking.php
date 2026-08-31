@@ -1,15 +1,18 @@
 <?php
 /**
- * Plugin Name:       Simple Booking
- * Description:       Reusable appointment requests with services and providers.
+ * Plugin Name:       Simple Popup Manager
+ * Plugin URI:        https://github.com/dknweb/simple-booking
+ * Description:       A lightweight, reusable plugin for creating and scheduling simple website popups targeted to specific WordPress pages.
  * Version:           1.0.0
- * Requires at least: 6.0
  * Requires PHP:      8.0
- * Author:            DKNWeb
- * Text Domain:       simple-booking
+ * Requires at least: 6.0
+ * Author:            Dan Biscaro
+ * License:           GPL v2 or later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       simple-popup-manager
  * Domain Path:       /languages
  *
- * @package SimpleBooking
+ * @package SimplePopupManager
  */
 
 namespace SimpleBooking;
